@@ -159,7 +159,6 @@ public abstract class BenchmarkBase<T> {
         public void setup() throws Throwable {
             if (profiling) {
                 printProcessPid();
-                sleep();
             }
 
             if (persistenceUnit.contains("mock")) {
@@ -208,15 +207,6 @@ public abstract class BenchmarkBase<T> {
         private void printProcessPid() {
             long pid = ProcessHandle.current().pid();
             System.out.println("Benchmark pid: " + pid);
-        }
-
-        public void sleep(){
-            System.out.println("Sleep 20s to allow hooking into process");
-            try {
-                Thread.sleep(20_000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
         }
 
         public void waitForCluster(EntityManagerFactory entityManagerFactory) throws Exception {
