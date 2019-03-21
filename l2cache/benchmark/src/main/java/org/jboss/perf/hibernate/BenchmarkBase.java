@@ -206,11 +206,16 @@ public abstract class BenchmarkBase<T> {
 
         public void waitForCluster(EntityManagerFactory entityManagerFactory) throws Exception {
             RegionFactory regionFactory = ((CacheImplementor) entityManagerFactory.unwrap(SessionFactory.class).getCache()).getRegionFactory();
-            Field managerField = regionFactory.getClass().getDeclaredField("manager");
-            managerField.setAccessible(true);
-            EmbeddedCacheManager manager = (EmbeddedCacheManager) managerField.get(regionFactory);
-            while (manager.getMembers().size() < numOtherNodes + 1) {
-                Thread.sleep(100);
+            Field managerField = null;
+            try {
+                managerField = regionFactory.getClass().getDeclaredField("manager");
+                managerField.setAccessible(true);
+                EmbeddedCacheManager manager = (EmbeddedCacheManager) managerField.get(regionFactory);
+                while (manager.getMembers().size() < numOtherNodes + 1) {
+                    Thread.sleep(100);
+                }
+            } catch (NoSuchFieldException e) {
+                // Not clustered, so ignore
             }
         }
 
@@ -246,47 +251,50 @@ public abstract class BenchmarkBase<T> {
             Map<String, String> l2Properties = new HashMap<>();
             //noinspection deprecation
             l2Properties.put(org.hibernate.jpa.AvailableSettings.SHARED_CACHE_MODE, SharedCacheMode.ALL.toString());
-            //properties.put(AvailableSettings.TRANSACTION_TYPE, PersistenceUnitTransactionType.JTA.toString());
-            //properties.put("hibernate.transaction.factory_class", JdbcTransactionFactory.class.getName());
-            //properties.put("hibernate.transaction.factory_class", JtaTransactionFactory.class.getName());
-            //properties.put(Environment.JTA_PLATFORM, "org.hibernate.service.jta.platform.internal.JBossStandAloneJtaPlatform");
-            l2Properties.put(AvailableSettings.CACHE_REGION_FACTORY, "infinispan");
+
+//            //properties.put(AvailableSettings.TRANSACTION_TYPE, PersistenceUnitTransactionType.JTA.toString());
+//            //properties.put("hibernate.transaction.factory_class", JdbcTransactionFactory.class.getName());
+//            //properties.put("hibernate.transaction.factory_class", JtaTransactionFactory.class.getName());
+//            //properties.put(Environment.JTA_PLATFORM, "org.hibernate.service.jta.platform.internal.JBossStandAloneJtaPlatform");
+
+            l2Properties.put(AvailableSettings.CACHE_REGION_FACTORY, "org.infinispan.quarkus.hibernate.cache.QuarkusInfinispanRegionFactory");
             l2Properties.put(AvailableSettings.USE_SECOND_LEVEL_CACHE, "true");
             l2Properties.put(AvailableSettings.USE_QUERY_CACHE, String.valueOf(queryCache));
-            l2Properties.put(AvailableSettings.USE_DIRECT_REFERENCE_CACHE_ENTRIES, String.valueOf(directReferenceEntries));
-            l2Properties.put(AvailableSettings.USE_MINIMAL_PUTS, String.valueOf(minimalPuts));
-            l2Properties.put(AvailableSettings.ENABLE_LAZY_LOAD_NO_TRANS, String.valueOf(lazyLoadNoTrans));
-            if (!keysFactory.isEmpty()) {
-                l2Properties.put(AvailableSettings.CACHE_KEYS_FACTORY, keysFactory);
-            }
-            if (!config.isEmpty()) {
-                l2Properties.put(InfinispanProperties.INFINISPAN_CONFIG_RESOURCE_PROP, config);
-            }
-            if (useReplication) {
-                l2Properties.put(InfinispanProperties.ENTITY_CACHE_RESOURCE_PROP, "replicated-entity");
-                l2Properties.put(InfinispanProperties.COLLECTION_CACHE_RESOURCE_PROP, "replicated-entity");
-                l2Properties.put(InfinispanProperties.NATURAL_ID_CACHE_RESOURCE_PROP, "replicated-entity");
-                l2Properties.put(InfinispanProperties.QUERY_CACHE_RESOURCE_PROP, "replicated-query");
-            }
-            AccessType defaultAccessType = null;
-            switch (secondLevelCache) {
-                case "tx":
-                    defaultAccessType = AccessType.TRANSACTIONAL;
-                    break;
-                case "ro":
-                    defaultAccessType = AccessType.READ_ONLY;
-                    break;
-                case "rw":
-                    defaultAccessType = AccessType.READ_WRITE;
-                    break;
-                case "ns":
-                    defaultAccessType = AccessType.NONSTRICT_READ_WRITE;
-                    break;
-            }
-            if (defaultAccessType != null) {
-                l2Properties.put(AvailableSettings.DEFAULT_CACHE_CONCURRENCY_STRATEGY, defaultAccessType.getExternalName());
-            }
-            l2Properties.put("hibernate.transaction.manager_lookup_class", "org.hibernate.transaction.JBossTransactionManagerLookup");
+
+//            l2Properties.put(AvailableSettings.USE_DIRECT_REFERENCE_CACHE_ENTRIES, String.valueOf(directReferenceEntries));
+//            l2Properties.put(AvailableSettings.USE_MINIMAL_PUTS, String.valueOf(minimalPuts));
+//            l2Properties.put(AvailableSettings.ENABLE_LAZY_LOAD_NO_TRANS, String.valueOf(lazyLoadNoTrans));
+//            if (!keysFactory.isEmpty()) {
+//                l2Properties.put(AvailableSettings.CACHE_KEYS_FACTORY, keysFactory);
+//            }
+//            if (!config.isEmpty()) {
+//                l2Properties.put(InfinispanProperties.INFINISPAN_CONFIG_RESOURCE_PROP, config);
+//            }
+//            if (useReplication) {
+//                l2Properties.put(InfinispanProperties.ENTITY_CACHE_RESOURCE_PROP, "replicated-entity");
+//                l2Properties.put(InfinispanProperties.COLLECTION_CACHE_RESOURCE_PROP, "replicated-entity");
+//                l2Properties.put(InfinispanProperties.NATURAL_ID_CACHE_RESOURCE_PROP, "replicated-entity");
+//                l2Properties.put(InfinispanProperties.QUERY_CACHE_RESOURCE_PROP, "replicated-query");
+//            }
+//            AccessType defaultAccessType = null;
+//            switch (secondLevelCache) {
+//                case "tx":
+//                    defaultAccessType = AccessType.TRANSACTIONAL;
+//                    break;
+//                case "ro":
+//                    defaultAccessType = AccessType.READ_ONLY;
+//                    break;
+//                case "rw":
+//                    defaultAccessType = AccessType.READ_WRITE;
+//                    break;
+//                case "ns":
+//                    defaultAccessType = AccessType.NONSTRICT_READ_WRITE;
+//                    break;
+//            }
+//            if (defaultAccessType != null) {
+//                l2Properties.put(AvailableSettings.DEFAULT_CACHE_CONCURRENCY_STRATEGY, defaultAccessType.getExternalName());
+//            }
+//            l2Properties.put("hibernate.transaction.manager_lookup_class", "org.hibernate.transaction.JBossTransactionManagerLookup");
             return l2Properties;
         }
 
