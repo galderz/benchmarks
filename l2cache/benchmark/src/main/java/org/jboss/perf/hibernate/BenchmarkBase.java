@@ -1,15 +1,8 @@
 package org.jboss.perf.hibernate;
 
+import java.io.IOException;
 import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiFunction;
@@ -139,6 +132,9 @@ public abstract class BenchmarkBase<T> {
         @Param("false")
         boolean useReplication;
 
+        @Param("false")
+        boolean profiling;
+
         private JndiHelper jndiHelper = new JndiHelper();
         private JtaHelper jtaHelper = new JtaHelper();
         private JacamarHelper jacamarHelper = new JacamarHelper();
@@ -161,6 +157,11 @@ public abstract class BenchmarkBase<T> {
 
         @Setup
         public void setup() throws Throwable {
+            if (profiling) {
+                printProcessPid();
+                sleep();
+            }
+
             if (persistenceUnit.contains("mock")) {
                 setupMock();
             }
@@ -201,6 +202,20 @@ public abstract class BenchmarkBase<T> {
             } catch (Throwable t) {
                 log(t);
                 throw t;
+            }
+        }
+
+        private void printProcessPid() {
+            long pid = ProcessHandle.current().pid();
+            System.out.println("Benchmark pid: " + pid);
+        }
+
+        public void sleep(){
+            System.out.println("Sleep 20s to allow hooking into process");
+            try {
+                Thread.sleep(20_000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
         }
 
